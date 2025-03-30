@@ -1,6 +1,5 @@
 const { MongoClient } = require('mongodb');
 
-
 const jsonData = require('./servicos.json');
 
 const uri = "mongodb+srv://ada2024fatecmrs:SMhe9Vu2RPkDIrlO@adacompanybd.14kbs.mongodb.net/";
