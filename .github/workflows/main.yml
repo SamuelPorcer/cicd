@@ -93,7 +93,7 @@ jobs:
           curl --request POST \
             --url 'https://api.brevo.com/v3/smtp/email' \
             --header 'accept: application/json' \
-            --header 'api-key: ${{ secrets.BREVO_API_KEY }}' \
+            --header 'api-key: ${{ secrets.SENHA_EMAIL }}' \
             --header 'content-type: application/json' \
             --data '{
               "sender": { "email": "${{ secrets.EMAIL_ORIGEM }}" },
