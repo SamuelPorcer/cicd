@@ -87,15 +87,17 @@ jobs:
           git tag v${{ env.new_version }}
           git push origin main --tags
       ######### ENVIO E-MAIL #########
-      - name: Enviar e-mail em caso de falha
+      - name: Enviar e-mail via API Brevo
         if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp-relay.brevo.com
-          server_port: 587                            
-          username: ${{ secrets.EMAIL_ORIGEM }} 
-          password: ${{ secrets.SENHA_EMAIL }}  
-          subject: "🚨 Falha no GitHub Actions: ${{ github.workflow }}"
-          body: "O workflow falhou. Verifique em: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          to: ${{ secrets.EMAIL_DESTINO }}   # E-mail destino
-          from: ${{ secrets.EMAIL_ORIGEM }}  # Mesmo e-mail do username
+        run: |
+          curl --request POST \
+            --url 'https://api.brevo.com/v3/smtp/email' \
+            --header 'accept: application/json' \
+            --header 'api-key: ${{ secrets.BREVO_API_KEY }}' \
+            --header 'content-type: application/json' \
+            --data '{
+              "sender": { "email": "${{ secrets.EMAIL_ORIGEM }}" },
+              "to": [ { "email": "${{ secrets.EMAIL_DESTINO }}" } ],
+              "subject": "Falha no GitHub Actions",
+              "htmlContent": "Workflow falhou: ${{ github.workflow }}"
+            }'
