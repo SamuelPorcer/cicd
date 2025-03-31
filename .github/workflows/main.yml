@@ -87,16 +87,17 @@ jobs:
           git tag v${{ env.new_version }}
           git push origin main --tags
       ######### ENVIO E-MAIL #########
-      - name: Enviar e-mail falha
+      - name: Enviar e-mail em caso de falha
         if: failure()
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.office365.com
-          server_port: 587
-          secure: false
-          username: ${{secrets.EMAIL_ORIGEM}}
-          password: ${{secrets.SENHA_EMAIL}}
-          subject: Falha no workflow do GitHub Actions
-          body: O workflow falhou no passo de testes.
-          to: ${{secrets.EMAIL_DESTINO}}
-          from: ${{secrets.EMAIL_ORIGEM}}
+          server_address: smtp.office365.com  # ✅ Usar Office365, não Outlook
+          server_port: 587                   # ✅ Porta 587 (TLS) ou 465 (SSL)
+          secure: false                      # ✅ false para porta 587
+          require_tls: true                  # ✅ Obrigatório para Office365
+          username: ${{ secrets.EMAIL_ORIGEM }}  # Ex: user@domain.com
+          password: ${{ secrets.SENHA_EMAIL }}   # Senha de APP, não senha normal
+          subject: "🚨 Falha no GitHub Actions: ${{ github.workflow }}"
+          body: "O workflow falhou. Verifique em: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          to: ${{ secrets.EMAIL_DESTINO }}   # E-mail destino
+          from: ${{ secrets.EMAIL_ORIGEM }}  # Mesmo e-mail do username
