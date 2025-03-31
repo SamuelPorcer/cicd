@@ -26,8 +26,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           if [ -z "$(git tag)" ]; then
-            git config --global user.name 'github-actions'
-            git config --global user.email 'github-actions@github.com'
+            git config --global user.name 'luizriato'
+            git config --global user.email 'luiz.riato@outlook.com'
             git tag -a v0.0.0 -m "Initial release"
             git push origin v0.0.0
           fi
