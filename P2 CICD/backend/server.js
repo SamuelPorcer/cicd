@@ -1,98 +1,167 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
+
+// Importações locais
+const { initializeDatabase } = require('./config/database');
+const { logger, requestLogger, errorLogger } = require('./config/logger');
+const swaggerSpecs = require('./config/swagger');
+const swaggerUi = require('swagger-ui-express');
+
+// Rotas
+const tarefasRoutes = require('./routes/tarefas');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middlewares de segurança
+app.use(helmet());
+
+// Middlewares de logging
+app.use(morgan('combined'));
+app.use(requestLogger);
+
+// Middlewares básicos
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Armazenamento em memória das tarefas
-let tarefas = [
-  {
-    id: 1,
-    descricao: "Estudar React Native",
-    status: "pendente"
-  },
-  {
-    id: 2,
-    descricao: "Fazer exercícios",
-    status: "completa"
-  }
-];
+// Documentação Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-let nextId = 3;
-
-// Endpoints da API
-
-// GET /tarefas - Listar todas as tarefas
-app.get('/tarefas', (req, res) => {
-  res.json(tarefas);
-});
-
-// POST /tarefas - Adicionar nova tarefa
-app.post('/tarefas', (req, res) => {
-  const { descricao, status = 'pendente' } = req.body;
-  
-  if (!descricao || descricao.trim() === '') {
-    return res.status(400).json({ error: 'Descrição é obrigatória' });
-  }
-
-  const novaTarefa = {
-    id: nextId++,
-    descricao: descricao.trim(),
-    status: status
-  };
-
-  tarefas.push(novaTarefa);
-  res.status(201).json(novaTarefa);
-});
-
-// PUT /tarefas/:id - Atualizar tarefa existente
-app.put('/tarefas/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { descricao, status } = req.body;
-
-  const tarefaIndex = tarefas.findIndex(tarefa => tarefa.id === id);
-  
-  if (tarefaIndex === -1) {
-    return res.status(404).json({ error: 'Tarefa não encontrada' });
-  }
-
-  if (descricao && descricao.trim() === '') {
-    return res.status(400).json({ error: 'Descrição não pode estar vazia' });
-  }
-
-  tarefas[tarefaIndex] = {
-    ...tarefas[tarefaIndex],
-    descricao: descricao ? descricao.trim() : tarefas[tarefaIndex].descricao,
-    status: status || tarefas[tarefaIndex].status
-  };
-
-  res.json(tarefas[tarefaIndex]);
-});
-
-// DELETE /tarefas/:id - Excluir tarefa
-app.delete('/tarefas/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  
-  const tarefaIndex = tarefas.findIndex(tarefa => tarefa.id === id);
-  
-  if (tarefaIndex === -1) {
-    return res.status(404).json({ error: 'Tarefa não encontrada' });
-  }
-
-  const tarefaRemovida = tarefas.splice(tarefaIndex, 1)[0];
-  res.json({ message: 'Tarefa removida com sucesso', tarefa: tarefaRemovida });
-});
-
-// Rota de teste
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Rota de teste da API
+ *     tags: [Teste]
+ *     responses:
+ *       200:
+ *         description: API funcionando corretamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 version:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ */
 app.get('/', (req, res) => {
-  res.json({ message: 'API de Gerenciamento de Tarefas funcionando!' });
+  res.json({ 
+    message: 'API de Gerenciamento de Tarefas funcionando!',
+    version: process.env.npm_package_version || '1.0.0',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`API disponível em: http://localhost:${PORT}`);
-}); 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Verificação de saúde da API
+ *     tags: [Teste]
+ *     responses:
+ *       200:
+ *         description: API saudável
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 uptime:
+ *                   type: number
+ *                 timestamp:
+ *                   type: string
+ */
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Rotas da API
+app.use('/tarefas', tarefasRoutes);
+
+// Middleware de tratamento de erros
+app.use(errorLogger);
+
+// Tratamento de rotas não encontradas
+app.use('*', (req, res) => {
+  logger.warn('Rota não encontrada', { 
+    method: req.method, 
+    url: req.originalUrl,
+    ip: req.ip 
+  });
+  res.status(404).json({ 
+    error: 'Rota não encontrada',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// Tratamento de erros globais
+app.use((error, req, res, next) => {
+  logger.error('Erro não tratado', {
+    error: error.message,
+    stack: error.stack,
+    method: req.method,
+    url: req.url
+  });
+  
+  res.status(500).json({ 
+    error: 'Erro interno do servidor',
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Algo deu errado'
+  });
+});
+
+// Inicialização do servidor
+async function startServer() {
+  try {
+    // Inicializar banco de dados
+    await initializeDatabase();
+    
+    // Iniciar servidor
+    app.listen(PORT, () => {
+      logger.info('Servidor iniciado com sucesso', {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`🚀 Servidor rodando na porta ${PORT}`);
+      console.log(`📚 Documentação disponível em: http://localhost:${PORT}/api-docs`);
+      console.log(`🔍 Health check em: http://localhost:${PORT}/health`);
+      console.log(`📊 API disponível em: http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    logger.error('Erro ao inicializar servidor', { error: error.message });
+    console.error('❌ Erro ao inicializar servidor:', error.message);
+    process.exit(1);
+  }
+}
+
+// Tratamento de sinais para graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM recebido, encerrando servidor graciosamente');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT recebido, encerrando servidor graciosamente');
+  process.exit(0);
+});
+
+// Iniciar servidor
+startServer(); 

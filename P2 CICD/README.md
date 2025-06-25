@@ -1,200 +1,329 @@
-# 📱 App de Gerenciamento de Tarefas
+# API de Gerenciamento de Tarefas
 
-Uma aplicação React Native completa para gerenciamento de tarefas, conectada a uma API REST desenvolvida com Express.
+API REST completa para gerenciamento de tarefas com pipeline CI/CD automatizado.
 
 ## 🚀 Funcionalidades
 
-- ✅ **Listar tarefas** - Visualize todas as suas tarefas
-- ➕ **Adicionar tarefa** - Crie novas tarefas com descrição e status
-- ✏️ **Editar tarefa** - Modifique descrição e status de tarefas existentes
-- 🗑️ **Excluir tarefa** - Remova tarefas desnecessárias
-- 🔄 **Alternar status** - Marque tarefas como pendentes ou completas
-- 🔍 **Filtrar tarefas** - Visualize apenas tarefas pendentes ou completas
-- 📱 **Interface moderna** - Design limpo e intuitivo
-
-## 🛠️ Tecnologias Utilizadas
-
-### Frontend (React Native)
-- React Native com Expo
-- React Navigation para navegação
-- Axios para requisições HTTP
-- Expo Vector Icons para ícones
-
-### Backend (Node.js)
-- Express.js
-- CORS para permitir requisições cross-origin
-- Armazenamento em memória (array)
+- ✅ CRUD completo de tarefas
+- ✅ Documentação Swagger
+- ✅ Logging com BetterStack
+- ✅ Banco de dados MySQL
+- ✅ Docker e Docker Compose
+- ✅ Pipeline CI/CD com GitHub Actions
+- ✅ Deploy automático no Render
+- ✅ Versionamento automático
+- ✅ Notificações de erro por email
 
 ## 📋 Pré-requisitos
 
-- Node.js (versão 14 ou superior)
-- npm ou yarn
-- Expo CLI
-- Emulador Android/iOS ou dispositivo físico
+- Node.js 18+
+- Docker e Docker Compose
+- MySQL (para desenvolvimento local)
+- Conta no GitHub
+- Conta no Docker Hub
+- Conta no Render
+- Conta no BetterStack
 
-## 🔧 Instalação e Configuração
+## 🛠️ Configuração Local
 
 ### 1. Clone o repositório
+
 ```bash
-git clone <url-do-repositorio>
-cd tarefas-app
+git clone https://github.com/seu-usuario/tarefas-api.git
+cd tarefas-api
 ```
 
-### 2. Instale as dependências do frontend
+### 2. Configure as variáveis de ambiente
+
 ```bash
-npm install
+cd backend
+cp env.example .env
 ```
 
-### 3. Instale as dependências do backend
+Edite o arquivo `.env` com suas configurações:
+
+```env
+# Configurações do Servidor
+PORT=3000
+NODE_ENV=development
+
+# Configurações do Banco de Dados
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=tarefas_db
+
+# Configurações do BetterStack
+BETTERSTACK_SOURCE_TOKEN=seu_token_aqui
+```
+
+### 3. Instale as dependências
+
 ```bash
 cd backend
 npm install
-cd ..
 ```
 
-### 4. Configure a URL da API
-Se necessário, ajuste a URL da API nos arquivos das telas:
-- `screens/HomeScreen.js`
-- `screens/NovaTarefaScreen.js`
-- `screens/EditarTarefaScreen.js`
+### 4. Execute com Docker Compose (Recomendado)
 
-Por padrão, a API está configurada para rodar em `http://localhost:3000`.
-
-## 🚀 Como Executar
-
-### 1. Inicie o servidor backend
 ```bash
+# Na raiz do projeto
+docker-compose up --build
+```
+
+### 5. Execute localmente (Alternativo)
+
+```bash
+# Terminal 1 - Banco de dados
+docker run --name mysql-tarefas -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=tarefas_db -p 3306:3306 -d mysql:8.0
+
+# Terminal 2 - Backend
 cd backend
 npm start
 ```
 
-O servidor estará disponível em `http://localhost:3000`
+## 📚 Documentação da API
 
-### 2. Inicie o aplicativo React Native
-Em um novo terminal:
-```bash
-npm start
-```
+A documentação Swagger está disponível em:
+- **Local**: http://localhost:3000/api-docs
+- **Produção**: https://sua-api-render.onrender.com/api-docs
 
-Isso abrirá o Expo DevTools. Você pode:
-- Pressionar `a` para abrir no Android
-- Pressionar `i` para abrir no iOS
-- Escanear o QR code com o app Expo Go no seu dispositivo
-
-## 📱 Estrutura do Projeto
-
-```
-tarefas-app/
-├── backend/
-│   ├── server.js          # Servidor Express
-│   └── package.json       # Dependências do backend
-├── screens/
-│   ├── HomeScreen.js      # Tela principal com lista de tarefas
-│   ├── NovaTarefaScreen.js # Tela para adicionar tarefas
-│   └── EditarTarefaScreen.js # Tela para editar tarefas
-├── App.js                 # Componente principal com navegação
-└── package.json           # Dependências do frontend
-```
-
-## 🔌 Endpoints da API
+### Endpoints Principais
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
 | GET | `/tarefas` | Lista todas as tarefas |
+| GET | `/tarefas/:id` | Busca uma tarefa específica |
 | POST | `/tarefas` | Cria uma nova tarefa |
-| PUT | `/tarefas/:id` | Atualiza uma tarefa existente |
+| PUT | `/tarefas/:id` | Atualiza uma tarefa |
 | DELETE | `/tarefas/:id` | Remove uma tarefa |
+| GET | `/health` | Verificação de saúde da API |
 
-### Estrutura de uma Tarefa
+### Exemplo de uso
+
+```bash
+# Listar tarefas
+curl http://localhost:3000/tarefas
+
+# Criar tarefa
+curl -X POST http://localhost:3000/tarefas \
+  -H "Content-Type: application/json" \
+  -d '{"descricao": "Nova tarefa", "status": "pendente"}'
+
+# Atualizar tarefa
+curl -X PUT http://localhost:3000/tarefas/1 \
+  -H "Content-Type: application/json" \
+  -d '{"status": "completa"}'
+```
+
+## 🔄 Pipeline CI/CD
+
+O projeto utiliza GitHub Actions para automatizar o processo de CI/CD:
+
+### Etapas do Pipeline
+
+1. **CI (Continuous Integration)**
+   - Checkout do código
+   - Instalação de dependências
+   - Execução de testes
+   - Build da aplicação
+   - Linting do código
+
+2. **Versionamento**
+   - Geração automática de versão
+   - Atualização do package.json
+   - Commit das mudanças
+
+3. **Build da Imagem Docker**
+   - Login no Docker Hub
+   - Build da imagem
+   - Push para o registry
+   - Criação da tag latest
+
+4. **Deploy no Render**
+   - Atualização de variáveis de ambiente
+   - Deploy da nova imagem
+   - Verificação do status
+
+5. **Notificações**
+   - Email em caso de erro
+
+### Secrets Necessários
+
+Configure os seguintes secrets no GitHub:
+
+```bash
+# Docker Hub
+DOCKER_USERNAME=seu_usuario_docker
+DOCKER_PASSWORD=sua_senha_docker
+
+# Render
+RENDER_API_KEY=sua_api_key_render
+RENDER_SERVICE_ID=id_do_servico_render
+
+# Banco de Dados
+DB_HOST=host_do_banco
+DB_PORT=3306
+DB_USER=usuario_do_banco
+DB_PASSWORD=senha_do_banco
+DB_NAME=nome_do_banco
+
+# BetterStack
+BETTERSTACK_SOURCE_TOKEN=seu_token_betterstack
+
+# Email (para notificações)
+EMAIL_USERNAME=seu_email@gmail.com
+EMAIL_PASSWORD=sua_senha_app_gmail
+NOTIFICATION_EMAIL=email_para_notificacoes@exemplo.com
+```
+
+## 🐳 Docker
+
+### Imagens Disponíveis
+
+- **Backend**: Node.js 18 Alpine
+- **Banco de Dados**: MySQL 8.0
+
+### Comandos Docker
+
+```bash
+# Build da imagem
+docker build -t tarefas-api ./backend
+
+# Executar container
+docker run -p 3000:3000 tarefas-api
+
+# Executar com Docker Compose
+docker-compose up --build
+
+# Parar containers
+docker-compose down
+
+# Ver logs
+docker-compose logs -f backend
+```
+
+## 📊 Monitoramento
+
+### BetterStack Logs
+
+O projeto está integrado com BetterStack para logging centralizado:
+
+1. Crie uma conta no BetterStack
+2. Crie um novo stream para logs
+3. Configure o token no arquivo `.env` ou nas secrets do GitHub
+4. Os logs serão enviados automaticamente
+
+### Health Check
+
+```bash
+curl http://localhost:3000/health
+```
+
+Resposta esperada:
 ```json
 {
-  "id": 1,
-  "descricao": "Estudar React Native",
-  "status": "pendente"
+  "status": "OK",
+  "uptime": 123.456,
+  "timestamp": "2024-01-01T12:00:00.000Z"
 }
 ```
 
-## 🎨 Funcionalidades da Interface
+## 🧪 Testes
 
-### HomeScreen
-- Lista todas as tarefas com design de cards
-- Botões de filtro (Todas, Pendentes, Completas)
-- Botão flutuante para adicionar nova tarefa
-- Toque na tarefa para alternar status
-- Botões de editar e excluir para cada tarefa
+```bash
+cd backend
+npm test
+```
 
-### NovaTarefaScreen
-- Formulário para criar nova tarefa
-- Campo de descrição com contador de caracteres
-- Seleção de status (Pendente/Completa)
-- Validação de campos obrigatórios
+## 📝 Padrões de Commit
 
-### EditarTarefaScreen
-- Formulário pré-preenchido com dados da tarefa
-- Mesmas funcionalidades da tela de nova tarefa
-- Botão só fica ativo se houver mudanças
-- Informações adicionais da tarefa
+Utilizamos o padrão Conventional Commits:
 
-## 🔧 Configurações Avançadas
+- `feat:` Nova funcionalidade
+- `fix:` Correção de bug
+- `docs:` Documentação
+- `style:` Formatação de código
+- `refactor:` Refatoração
+- `test:` Testes
+- `chore:` Tarefas de manutenção
 
-### Para desenvolvimento em dispositivo físico
-Se estiver testando em um dispositivo físico, você precisará alterar a URL da API de `localhost` para o IP da sua máquina na rede local.
+Exemplo:
+```bash
+git commit -m "feat: adiciona endpoint para buscar tarefa por ID"
+```
 
-### Para produção
-- Configure um banco de dados real (MongoDB, PostgreSQL, etc.)
-- Implemente autenticação de usuários
-- Configure variáveis de ambiente
-- Implemente validações mais robustas
+## 🔧 Desenvolvimento
 
-## 🐛 Solução de Problemas
+### Estrutura do Projeto
 
-### Erro de conexão com a API
-- Verifique se o servidor backend está rodando
-- Confirme se a URL da API está correta
-- Verifique se não há firewall bloqueando a porta 3000
+```
+├── backend/
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── logger.js
+│   │   └── swagger.js
+│   ├── routes/
+│   │   └── tarefas.js
+│   ├── server.js
+│   ├── Dockerfile
+│   └── package.json
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml
+├── docker-compose.yml
+└── README.md
+```
 
-### Erro de navegação
-- Certifique-se de que todas as dependências de navegação foram instaladas
-- Reinicie o Metro bundler se necessário
+### Scripts Disponíveis
 
-### Erro no emulador
-- Limpe o cache do Expo: `expo start -c`
-- Reinicie o emulador
-- Verifique se todas as dependências estão instaladas
+```bash
+# Desenvolvimento
+npm run dev          # Executa em modo desenvolvimento
+npm run start        # Executa em produção
 
-## 📝 Relatório Técnico
+# Docker
+docker-compose up    # Inicia todos os serviços
+docker-compose down  # Para todos os serviços
+```
 
-### Estrutura da API
-A API REST foi desenvolvida com Express.js e implementa todas as operações CRUD:
-- **Create**: POST /tarefas - Cria novas tarefas
-- **Read**: GET /tarefas - Lista todas as tarefas
-- **Update**: PUT /tarefas/:id - Atualiza tarefas existentes
-- **Delete**: DELETE /tarefas/:id - Remove tarefas
+## 🚀 Deploy
 
-### Telas e Funcionalidades
-1. **HomeScreen**: Tela principal com lista de tarefas, filtros e ações
-2. **NovaTarefaScreen**: Formulário para criação de tarefas
-3. **EditarTarefaScreen**: Formulário para edição de tarefas existentes
+### Render
 
-### Integração Frontend-Backend
-O React Native utiliza Axios para fazer requisições HTTP para a API Express, implementando:
-- Tratamento de erros
-- Estados de loading
-- Validações de formulário
-- Feedback visual para o usuário
+1. Conecte seu repositório GitHub ao Render
+2. Configure as variáveis de ambiente
+3. O deploy será automático a cada push na branch main
 
-### Melhorias Implementadas
-- ✅ Filtros para visualizar tarefas por status
-- ✅ Validações nos formulários
-- ✅ Interface moderna com ícones e cores
-- ✅ Confirmações para ações destrutivas
-- ✅ Estados de loading e feedback
-- ✅ Design responsivo e acessível
+### Variáveis de Ambiente no Render
+
+- `NODE_ENV`: production
+- `PORT`: 3000
+- `DB_HOST`: Host do banco de dados
+- `DB_PORT`: 3306
+- `DB_USER`: Usuário do banco
+- `DB_PASSWORD`: Senha do banco
+- `DB_NAME`: Nome do banco
+- `BETTERSTACK_SOURCE_TOKEN`: Token do BetterStack
+
+## 📞 Suporte
+
+Para dúvidas ou problemas:
+
+1. Abra uma issue no GitHub
+2. Consulte a documentação Swagger
+3. Verifique os logs no BetterStack
 
 ## 📄 Licença
 
-Este projeto foi desenvolvido como exercício educacional. Sinta-se livre para usar e modificar conforme necessário.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## 👨‍💻 Autor
+## 👥 Contribuidores
 
-Desenvolvido como parte de um exercício de desenvolvimento mobile com React Native e APIs REST. 
+- [Seu Nome](https://github.com/seu-usuario)
+- [festmedeiros](https://github.com/festmedeiros)
+
+---
+
+**Desenvolvido com ❤️ para o projeto de CI/CD** 
