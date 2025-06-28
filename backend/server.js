@@ -53,7 +53,6 @@ app.use(requestLogger);
 app.use(cors({
   origin: isRender ? [
     'https://backendapicicd.onrender.com',
-    'https://*.onrender.com',
     'http://localhost:3000',
     'http://localhost:8080',
     'http://localhost:3001',
@@ -71,7 +70,6 @@ app.use(express.urlencoded({ extended: true }));
 // Documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
   swaggerOptions: {
-    url: '/api-docs/swagger.json',
     validatorUrl: null,
     supportedSubmitMethods: ['get', 'post', 'put', 'delete'],
     docExpansion: 'list',
@@ -81,6 +79,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'API de Gerenciamento de Tarefas - Documentação'
 }));
+
 
 // Endpoint para o JSON do Swagger
 app.get('/api-docs/swagger.json', (req, res) => {
