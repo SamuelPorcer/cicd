@@ -36,10 +36,15 @@ jobs:
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
     
+    - name: Clear npm cache
+      run: |
+        npm cache clean --force
+    
     - name: Install dependencies
       run: |
         cd backend
-        npm ci
+        rm -f package-lock.json
+        npm install
     
     - name: Run tests
       run: |

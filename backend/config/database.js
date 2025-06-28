@@ -1,51 +1,51 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
+  port: process.env.DB_PORT || 5432,
+  user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'tarefas_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true' 
+    ? { rejectUnauthorized: false } 
+    : false
 };
 
-const pool = mysql.createPool(dbConfig);
+const pool = new Pool(dbConfig);
 
 // Função para inicializar o banco de dados
 async function initializeDatabase() {
   try {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     
     // Criar tabela de tarefas se não existir
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS tarefas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         descricao VARCHAR(255) NOT NULL,
-        status ENUM('pendente', 'em_andamento', 'completa') DEFAULT 'pendente',
+        status VARCHAR(20) DEFAULT 'pendente' CHECK (status IN ('pendente', 'em_andamento', 'completa')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
     
-    await connection.execute(createTableQuery);
+    await client.query(createTableQuery);
     
     // Inserir dados de exemplo se a tabela estiver vazia
-    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM tarefas');
+    const result = await client.query('SELECT COUNT(*) as count FROM tarefas');
     
-    if (rows[0].count === 0) {
+    if (parseInt(result.rows[0].count) === 0) {
       const insertQuery = `
         INSERT INTO tarefas (descricao, status) VALUES 
         ('Estudar React Native', 'pendente'),
         ('Fazer exercícios', 'completa')
       `;
-      await connection.execute(insertQuery);
+      await client.query(insertQuery);
       console.log('Dados de exemplo inseridos no banco de dados');
     }
     
-    connection.release();
+    client.release();
     console.log('Banco de dados inicializado com sucesso');
   } catch (error) {
     console.error('Erro ao inicializar banco de dados:', error);

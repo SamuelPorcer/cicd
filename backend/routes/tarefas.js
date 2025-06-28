@@ -27,9 +27,9 @@ const { logger } = require('../config/logger');
  */
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM tarefas ORDER BY created_at DESC');
-    logger.info('Tarefas listadas com sucesso', { count: rows.length });
-    res.json(rows);
+    const result = await pool.query('SELECT * FROM tarefas ORDER BY created_at DESC');
+    logger.info('Tarefas listadas com sucesso', { count: result.rows.length });
+    res.json(result.rows);
   } catch (error) {
     logger.error('Erro ao listar tarefas', { error: error.message });
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -68,15 +68,15 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.execute('SELECT * FROM tarefas WHERE id = ?', [id]);
+    const result = await pool.query('SELECT * FROM tarefas WHERE id = $1', [id]);
     
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       logger.warn('Tarefa não encontrada', { id });
       return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
     
     logger.info('Tarefa encontrada', { id });
-    res.json(rows[0]);
+    res.json(result.rows[0]);
   } catch (error) {
     logger.error('Erro ao buscar tarefa', { error: error.message, id: req.params.id });
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -131,15 +131,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Descrição é obrigatória' });
     }
 
-    const [result] = await pool.execute(
-      'INSERT INTO tarefas (descricao, status) VALUES (?, ?)',
+    const result = await pool.query(
+      'INSERT INTO tarefas (descricao, status) VALUES ($1, $2) RETURNING *',
       [descricao.trim(), status]
     );
 
-    const [newTarefa] = await pool.execute('SELECT * FROM tarefas WHERE id = ?', [result.insertId]);
-    
-    logger.info('Tarefa criada com sucesso', { id: result.insertId, descricao });
-    res.status(201).json(newTarefa[0]);
+    logger.info('Tarefa criada com sucesso', { id: result.rows[0].id, descricao });
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     logger.error('Erro ao criar tarefa', { error: error.message, body: req.body });
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -193,9 +191,9 @@ router.put('/:id', async (req, res) => {
     const { descricao, status } = req.body;
 
     // Verificar se a tarefa existe
-    const [existing] = await pool.execute('SELECT * FROM tarefas WHERE id = ?', [id]);
+    const existing = await pool.query('SELECT * FROM tarefas WHERE id = $1', [id]);
     
-    if (existing.length === 0) {
+    if (existing.rows.length === 0) {
       logger.warn('Tentativa de atualizar tarefa inexistente', { id });
       return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
@@ -208,14 +206,15 @@ router.put('/:id', async (req, res) => {
     // Construir query de atualização dinamicamente
     const updates = [];
     const values = [];
+    let paramCount = 1;
     
     if (descricao !== undefined) {
-      updates.push('descricao = ?');
+      updates.push(`descricao = $${paramCount++}`);
       values.push(descricao.trim());
     }
     
     if (status !== undefined) {
-      updates.push('status = ?');
+      updates.push(`status = $${paramCount++}`);
       values.push(status);
     }
     
@@ -225,15 +224,15 @@ router.put('/:id', async (req, res) => {
     
     values.push(id);
     
-    await pool.execute(
-      `UPDATE tarefas SET ${updates.join(', ')} WHERE id = ?`,
+    await pool.query(
+      `UPDATE tarefas SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount}`,
       values
     );
 
-    const [updatedTarefa] = await pool.execute('SELECT * FROM tarefas WHERE id = ?', [id]);
+    const updatedTarefa = await pool.query('SELECT * FROM tarefas WHERE id = $1', [id]);
     
     logger.info('Tarefa atualizada com sucesso', { id, updates });
-    res.json(updatedTarefa[0]);
+    res.json(updatedTarefa.rows[0]);
   } catch (error) {
     logger.error('Erro ao atualizar tarefa', { error: error.message, id: req.params.id });
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -275,19 +274,19 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     
     // Verificar se a tarefa existe
-    const [existing] = await pool.execute('SELECT * FROM tarefas WHERE id = ?', [id]);
+    const existing = await pool.query('SELECT * FROM tarefas WHERE id = $1', [id]);
     
-    if (existing.length === 0) {
+    if (existing.rows.length === 0) {
       logger.warn('Tentativa de remover tarefa inexistente', { id });
       return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
 
-    await pool.execute('DELETE FROM tarefas WHERE id = ?', [id]);
+    await pool.query('DELETE FROM tarefas WHERE id = $1', [id]);
     
     logger.info('Tarefa removida com sucesso', { id });
     res.json({ 
       message: 'Tarefa removida com sucesso', 
-      tarefa: existing[0] 
+      tarefa: existing.rows[0] 
     });
   } catch (error) {
     logger.error('Erro ao remover tarefa', { error: error.message, id: req.params.id });

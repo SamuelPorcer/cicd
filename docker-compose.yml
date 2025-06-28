@@ -1,25 +1,24 @@
 version: '3.8'
 
 services:
-  # Banco de dados MySQL
-  mysql:
-    image: mysql:8.0
-    container_name: tarefas-mysql
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: tarefas-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: tarefas_db
-      MYSQL_USER: tarefas_user
-      MYSQL_PASSWORD: tarefas_password
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tarefas_db
+      POSTGRES_USER: postgres
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - tarefas-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       timeout: 20s
       retries: 10
 
@@ -33,16 +32,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
       - DB_PASSWORD=password
       - DB_NAME=tarefas_db
+      - DB_SSL=false
       - BETTERSTACK_SOURCE_TOKEN=${BETTERSTACK_SOURCE_TOKEN}
     ports:
       - "3000:3000"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     networks:
       - tarefas-network
@@ -54,7 +54,7 @@ services:
       start_period: 40s
 
 volumes:
-  mysql_data:
+  postgres_data:
     driver: local
 
 networks:

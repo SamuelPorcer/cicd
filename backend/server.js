@@ -6,7 +6,7 @@ require('dotenv').config();
 
 // Importações locais
 const { initializeDatabase } = require('./config/database');
-const { logger, requestLogger, errorLogger } = require('./config/logger');
+const { logger, requestLogger, errorLogger, flushLogs } = require('./config/logger');
 const swaggerSpecs = require('./config/swagger');
 const swaggerUi = require('swagger-ui-express');
 
@@ -153,13 +153,15 @@ async function startServer() {
 }
 
 // Tratamento de sinais para graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM recebido, encerrando servidor graciosamente');
+  await flushLogs();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT recebido, encerrando servidor graciosamente');
+  await flushLogs();
   process.exit(0);
 });
 

@@ -1,4 +1,4 @@
-# 📊 Configuração do BetterStack
+# 📊 Configuração do BetterStack com Logtail
 
 ## Passos para configurar o BetterStack para logging centralizado
 
@@ -37,7 +37,14 @@ Após criar o Log Source:
 2. Vá em **"Settings"** > **"Source Token"**
 3. **Copie o token** (você precisará dele)
 
-### 5. Configurar no projeto
+### 5. Instalar dependências
+
+```bash
+cd backend
+npm install @logtail/winston @logtail/node
+```
+
+### 6. Configurar no projeto
 
 #### Local (.env):
 ```env
@@ -49,21 +56,55 @@ BETTERSTACK_SOURCE_TOKEN=seu_source_token_aqui
 BETTERSTACK_SOURCE_TOKEN=seu_source_token_aqui
 ```
 
-### 6. Verificar integração
+### 7. Verificar configuração
 
-#### Teste local:
+#### Script de verificação:
+```bash
+cd backend
+node verify-token.js
+```
+
+Este script irá:
+- Verificar se o token está configurado
+- Mostrar informações sobre o token
+- Dar instruções se algo estiver errado
+
+### 8. Testar integração
+
+#### Script de teste automático:
+```bash
+cd backend
+node test-betterstack.js
+```
+
+Este script irá:
+- Verificar se o token está configurado
+- Enviar logs de teste (INFO, WARN, ERROR)
+- Mostrar o status da integração
+
+#### Teste manual:
 1. Configure o token no arquivo `.env`
 2. Execute a aplicação: `npm start`
 3. Faça algumas requisições para a API
 4. Verifique se os logs aparecem no BetterStack
 
-#### Teste em produção:
-1. Configure o token nas secrets do GitHub
-2. Faça deploy no Render
-3. Teste a API em produção
-4. Verifique os logs no BetterStack
+### 9. Troubleshooting - Erro 401/Unauthorized
 
-### 7. Configurar alertas (opcional)
+Se você receber erro 401 (Unauthorized):
+
+#### Verificações:
+1. **Token válido**: Confirme se o token está correto e não expirou
+2. **Source ativo**: Verifique se o Log Source não foi deletado
+3. **Token correto**: Use o token do Source Token, não do API Token
+4. **Formato correto**: O token deve ter pelo menos 20 caracteres
+
+#### Soluções:
+1. **Gerar novo token**: Vá em Settings > Source Token > Regenerate
+2. **Verificar source**: Confirme se o source está ativo no dashboard
+3. **Verificar token**: Execute `node verify-token.js` para verificar o token
+4. **Reiniciar aplicação**: Após alterar o token, reinicie o servidor
+
+### 10. Configurar alertas (opcional)
 
 1. Vá em **"Alerts"** no BetterStack
 2. Clique em **"Create Alert"**
@@ -73,7 +114,7 @@ BETTERSTACK_SOURCE_TOKEN=seu_source_token_aqui
    - **Notification**: Email/Slack
    - **Threshold**: 1 error in 5 minutes
 
-### 8. Configurar dashboards (opcional)
+### 11. Configurar dashboards (opcional)
 
 1. Vá em **"Dashboards"**
 2. Crie um novo dashboard
@@ -83,13 +124,13 @@ BETTERSTACK_SOURCE_TOKEN=seu_source_token_aqui
    - Response time
    - Top endpoints
 
-### 9. URLs importantes
+### 12. URLs importantes
 
 - **Dashboard**: https://logs.betterstack.com
 - **Seu Log Source**: https://logs.betterstack.com/sources/seu_source_id
 - **Documentação**: https://betterstack.com/docs/
 
-### 10. Estrutura dos logs
+### 13. Estrutura dos logs
 
 O projeto envia os seguintes tipos de logs:
 
@@ -103,7 +144,8 @@ O projeto envia os seguintes tipos de logs:
   "status": 200,
   "duration": "45ms",
   "userAgent": "curl/7.68.0",
-  "ip": "192.168.1.1"
+  "ip": "192.168.1.1",
+  "service": "tarefas-api"
 }
 ```
 
@@ -115,7 +157,8 @@ O projeto envia os seguintes tipos de logs:
   "error": "Database connection failed",
   "stack": "Error: connect ECONNREFUSED...",
   "method": "GET",
-  "url": "/tarefas"
+  "url": "/tarefas",
+  "service": "tarefas-api"
 }
 ```
 
@@ -126,11 +169,12 @@ O projeto envia os seguintes tipos de logs:
   "message": "Servidor iniciado com sucesso",
   "port": 3000,
   "environment": "production",
-  "timestamp": "2024-01-01T12:00:00.000Z"
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "service": "tarefas-api"
 }
 ```
 
-### 11. Monitoramento
+### 14. Monitoramento
 
 #### Logs em tempo real:
 - Acesse o dashboard do Log Source
@@ -143,27 +187,35 @@ O projeto envia os seguintes tipos de logs:
 - **Response Time**: Tempo de resposta
 - **Top Endpoints**: Endpoints mais acessados
 
-### 12. Troubleshooting
+### 15. Troubleshooting geral
 
 #### Logs não aparecem:
-1. Verifique se o token está correto
+1. Verifique se o token está correto com `node verify-token.js`
 2. Confirme se o source foi criado
-3. Teste com uma requisição manual
+3. Execute o script de teste: `node test-betterstack.js`
 4. Verifique se a aplicação está enviando logs
 
-#### Erro de autenticação:
+#### Erro de autenticação (401):
 1. Verifique se o token está válido
 2. Confirme se o source não foi deletado
 3. Gere um novo token se necessário
+4. Use o token do Source Token, não do API Token
 
 #### Logs duplicados:
 1. Verifique se não há múltiplas instâncias
 2. Confirme se o logger está configurado corretamente
 3. Use filtros para remover duplicatas
 
-### 13. Comandos úteis
+### 16. Comandos úteis
 
 ```bash
+# Verificar configuração do token
+cd backend
+node verify-token.js
+
+# Testar integração com BetterStack
+node test-betterstack.js
+
 # Testar logs localmente
 curl http://localhost:3000/tarefas
 
@@ -174,7 +226,7 @@ curl http://localhost:3000/tarefas
 curl https://seu-servico.onrender.com/tarefas
 ```
 
-### 14. Configurações avançadas
+### 17. Configurações avançadas
 
 #### Log Levels:
 - **Error**: Erros críticos
@@ -194,4 +246,9 @@ curl https://seu-servico.onrender.com/tarefas
 
 ---
 
-**Importante**: Mantenha o Source Token seguro e nunca o commite no repositório. 
+**Importante**: 
+- Mantenha o Source Token seguro e nunca o commite no repositório
+- Use o script `verify-token.js` para verificar a configuração
+- Use o script `test-betterstack.js` para testar a integração
+- Em caso de erro 401, verifique se está usando o Source Token correto
+- O token deve vir de Settings > Source Token, não de API Tokens 

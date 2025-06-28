@@ -1,10 +1,16 @@
 const winston = require('winston');
+const { Logtail } = require("@logtail/node");
+const { LogtailTransport } = require("@logtail/winston");
 require('dotenv').config();
 
-// Configuração do BetterStack
-const BetterStack = require('winston-betterstack');
+// Criar cliente Logtail se o token estiver configurado
+let logtail = null;
+if (process.env.BETTERSTACK_SOURCE_TOKEN) {
+  logtail = new Logtail(process.env.BETTERSTACK_SOURCE_TOKEN, {
+    endpoint: 'https://s1360540.eu-nbg-2.betterstackdata.com',
+  });
+}
 
-// Criar logger
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -14,28 +20,21 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'tarefas-api' },
   transports: [
-    // Console transport
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
       )
     }),
-    
-    // BetterStack transport (apenas se o token estiver configurado)
-    ...(process.env.BETTERSTACK_SOURCE_TOKEN ? [
-      new BetterStack({
-        sourceToken: process.env.BETTERSTACK_SOURCE_TOKEN,
-        level: 'info'
-      })
-    ] : [])
+    // Adicionar transport do Logtail se configurado
+    ...(logtail ? [new LogtailTransport(logtail)] : [])
   ]
 });
 
-// Middleware para logging de requisições
+// Middleware para requisições
 const requestLogger = (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const logData = {
@@ -46,18 +45,18 @@ const requestLogger = (req, res, next) => {
       userAgent: req.get('User-Agent'),
       ip: req.ip || req.connection.remoteAddress
     };
-    
+
     if (res.statusCode >= 400) {
       logger.error('Request failed', logData);
     } else {
       logger.info('Request completed', logData);
     }
   });
-  
+
   next();
 };
 
-// Função para logging de erros
+// Middleware para erros
 const errorLogger = (error, req, res, next) => {
   logger.error('Application error', {
     error: error.message,
@@ -68,8 +67,15 @@ const errorLogger = (error, req, res, next) => {
     params: req.params,
     query: req.query
   });
-  
+
   next(error);
 };
 
-module.exports = { logger, requestLogger, errorLogger }; 
+// Função para garantir que todos os logs sejam enviados
+const flushLogs = async () => {
+  if (logtail) {
+    await logtail.flush();
+  }
+};
+
+module.exports = { logger, requestLogger, errorLogger, flushLogs };
