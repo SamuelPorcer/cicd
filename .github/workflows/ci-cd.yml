@@ -87,54 +87,60 @@ jobs:
         if [ -z "$LAST_TAG" ]; then
             echo "Nenhuma tag 'vX.Y.Z' encontrada. Iniciando com v0.0.0."
             LAST_TAG="v0.0.0"
-        fi
+            # Se não há tags, vamos criar a primeira versão
+            MAJOR=0
+            MINOR=0
+            PATCH=1
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+            echo "Primeira versão será: $NEW_VERSION"
+        else
+            echo "Última tag considerada: $LAST_TAG"
 
-        echo "Última tag considerada: $LAST_TAG"
+            # Extrair componentes da versão
+            VERSION_WITHOUT_V=${LAST_TAG#v}
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_WITHOUT_V"
+            echo "DEBUG: Versão atual - Major: $MAJOR, Minor: $MINOR, Patch: $PATCH"
 
-        # Extrair componentes da versão
-        VERSION_WITHOUT_V=${LAST_TAG#v}
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_WITHOUT_V"
-        echo "DEBUG: Versão atual - Major: $MAJOR, Minor: $MINOR, Patch: $PATCH"
+            # Determinar incremento de versão
+            echo "Obtendo commits desde a última tag..."
+            COMMITS_SINCE_LAST_TAG=$(git log "$LAST_TAG..HEAD" --pretty=format:"%s")
+            echo "DEBUG: Commits desde '$LAST_TAG':"
+            echo "$COMMITS_SINCE_LAST_TAG"
+            echo "-----------------------------------"
 
-        # Determinar incremento de versão
-        echo "Obtendo commits desde a última tag..."
-        COMMITS_SINCE_LAST_TAG=$(git log "$LAST_TAG..HEAD" --pretty=format:"%s")
-        echo "DEBUG: Commits desde '$LAST_TAG':"
-        echo "$COMMITS_SINCE_LAST_TAG"
-        echo "-----------------------------------"
+            INCREMENT="patch" # Padrão: incremento de patch
+            if [[ "$COMMITS_SINCE_LAST_TAG" == *"BREAKING CHANGE"* ]]; then
+                INCREMENT="major"
+            elif [[ "$COMMITS_SINCE_LAST_TAG" == *"feat"* ]]; then
+                INCREMENT="minor"
+            fi
+            echo "DEBUG: Tipo de incremento determinado: $INCREMENT"
 
-        INCREMENT="patch" # Padrão: incremento de patch
-        if [[ "$COMMITS_SINCE_LAST_TAG" == *"BREAKING CHANGE"* ]]; then
-            INCREMENT="major"
-        elif [[ "$COMMITS_SINCE_LAST_TAG" == *"feat"* ]]; then
-            INCREMENT="minor"
-        fi
-        echo "DEBUG: Tipo de incremento determinado: $INCREMENT"
+            # Incrementar versão
+            case $INCREMENT in
+                major)
+                    MAJOR=$((MAJOR + 1))
+                    MINOR=0
+                    PATCH=0
+                    ;;
+                minor)
+                    MINOR=$((MINOR + 1))
+                    PATCH=0
+                    ;;
+                patch)
+                    PATCH=$((PATCH + 1))
+                    ;;
+            esac
 
-        # Incrementar versão
-        case $INCREMENT in
-            major)
-                MAJOR=$((MAJOR + 1))
-                MINOR=0
-                PATCH=0
-                ;;
-            minor)
-                MINOR=$((MINOR + 1))
-                PATCH=0
-                ;;
-            patch)
-                PATCH=$((PATCH + 1))
-                ;;
-        esac
+            NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+            echo "Nova versão calculada: $NEW_VERSION"
 
-        NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-        echo "Nova versão calculada: $NEW_VERSION"
-
-        # Verificar se a nova versão é a mesma da última tag
-        if [ "$NEW_VERSION" == "$LAST_TAG" ] && [ "$LAST_TAG" != "v0.0.0" ]; then
-          echo "A nova versão ($NEW_VERSION) é a mesma da última tag existente ($LAST_TAG). Não há necessidade de criar uma nova tag."
-          echo "NEW_VERSION=" >> $GITHUB_OUTPUT
-          exit 0
+            # Verificar se a nova versão é a mesma da última tag
+            if [ "$NEW_VERSION" == "$LAST_TAG" ] && [ "$LAST_TAG" != "v0.0.0" ]; then
+              echo "A nova versão ($NEW_VERSION) é a mesma da última tag existente ($LAST_TAG). Não há necessidade de criar uma nova tag."
+              echo "NEW_VERSION=" >> $GITHUB_OUTPUT
+              exit 0
+            fi
         fi
 
         # Criar arquivo de versão
