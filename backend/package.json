@@ -1,6 +1,6 @@
 {
   "name": "tarefas-backend",
-  "version": "1.0.1751071375",
+  "version": "1.0.1751071562",
   "description": "API REST para gerenciamento de tarefas",
   "main": "server.js",
   "scripts": {
