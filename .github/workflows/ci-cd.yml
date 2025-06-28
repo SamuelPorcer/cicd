@@ -45,8 +45,8 @@ jobs:
         cd backend
         npm run build || echo "No build script found, skipping build step"
 
-  # Job de build e deploy da imagem Docker
-  build_and_deploy:
+  # Job de build e deploy da imagem Docker da aplicação
+  build_and_deploy_app:
     if: startsWith(github.ref, 'refs/heads/main')
     needs: ci
     runs-on: ubuntu-latest
@@ -206,7 +206,7 @@ jobs:
         echo "📥 Testando pull de imagem pública..."
         docker pull hello-world || echo "❌ Falha no pull de imagem pública"
 
-    - name: Build and push Docker image
+    - name: Build and push Docker image (App)
       if: steps.version_step.outputs.NEW_VERSION != ''
       uses: docker/build-push-action@v5
       with:
@@ -288,12 +288,70 @@ jobs:
         echo "Waiting for deployment to complete..."
         sleep 60
 
+  # Job de build e push da imagem Docker do PostgreSQL
+  build_and_deploy_postgres:
+    if: startsWith(github.ref, 'refs/heads/main')
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Cache Docker layers (PostgreSQL)
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache-postgres
+        key: ${{ runner.os }}-buildx-postgres-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-postgres-
+
+    - name: Login no Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker image (PostgreSQL)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile.postgres
+        push: true
+        tags: |
+          luizrinaldiriato/dockerpostgres:latest
+          luizrinaldiriato/dockerpostgres:postgres15
+          luizrinaldiriato/dockerpostgres:${{ github.sha }}
+        cache-from: type=local,src=/tmp/.buildx-cache-postgres
+        cache-to: type=local,dest=/tmp/.buildx-cache-postgres-new,mode=max
+
+    - name: Move cache (PostgreSQL)
+      run: |
+        rm -rf /tmp/.buildx-cache-postgres
+        mv /tmp/.buildx-cache-postgres-new /tmp/.buildx-cache-postgres
+
+    - name: Notify PostgreSQL image pushed
+      run: |
+        echo "✅ Imagem PostgreSQL enviada para Docker Hub:"
+        echo "   - luizrinaldiriato/dockerpostgres:latest"
+        echo "   - luizrinaldiriato/dockerpostgres:postgres15"
+        echo "   - luizrinaldiriato/dockerpostgres:${{ github.sha }}"
+
   # Job de notificação de erro
   notify-error:
     name: Notify on Error
     runs-on: ubuntu-latest
     if: failure()
-    needs: [ci, build_and_deploy]
+    needs: [ci, build_and_deploy_app, build_and_deploy_postgres]
     
     steps:
     - name: Send email notification

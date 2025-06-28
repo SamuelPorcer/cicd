@@ -7,18 +7,19 @@ API REST completa para gerenciamento de tarefas com pipeline CI/CD automatizado.
 - ✅ CRUD completo de tarefas
 - ✅ Documentação Swagger
 - ✅ Logging com BetterStack
-- ✅ Banco de dados MySQL
+- ✅ Banco de dados PostgreSQL
 - ✅ Docker e Docker Compose
 - ✅ Pipeline CI/CD com GitHub Actions
 - ✅ Deploy automático no Render
 - ✅ Versionamento automático
 - ✅ Notificações de erro por email
+- ✅ Imagem Docker personalizada do PostgreSQL
 
 ## 📋 Pré-requisitos
 
 - Node.js 18+
 - Docker e Docker Compose
-- MySQL (para desenvolvimento local)
+- PostgreSQL (para desenvolvimento local)
 - Conta no GitHub
 - Conta no Docker Hub
 - Conta no Render
@@ -47,12 +48,13 @@ Edite o arquivo `.env` com suas configurações:
 PORT=3000
 NODE_ENV=development
 
-# Configurações do Banco de Dados
+# Configurações do Banco de Dados PostgreSQL
 DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
+DB_PORT=5432
+DB_USER=postgres
 DB_PASSWORD=password
 DB_NAME=tarefas_db
+DB_SSL=false
 
 # Configurações do BetterStack
 BETTERSTACK_SOURCE_TOKEN=seu_token_aqui
@@ -74,14 +76,89 @@ docker-compose up --build
 
 ### 5. Execute localmente (Alternativo)
 
+#### Opção A: Usando a imagem PostgreSQL personalizada
+
 ```bash
-# Terminal 1 - Banco de dados
-docker run --name mysql-tarefas -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=tarefas_db -p 3306:3306 -d mysql:8.0
+# Terminal 1 - Banco de dados PostgreSQL
+docker run --name postgres-tarefas \
+  -e POSTGRES_DB=tarefas_db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -p 5432:5432 \
+  -d luizrinaldiriato/dockerpostgres:latest
 
 # Terminal 2 - Backend
 cd backend
 npm start
 ```
+
+#### Opção B: PostgreSQL local
+
+```bash
+# Terminal 1 - Banco de dados
+docker run --name postgres-tarefas -e POSTGRES_PASSWORD=password -e POSTGRES_DB=tarefas_db -p 5432:5432 -d postgres:15
+
+# Terminal 2 - Backend
+cd backend
+npm start
+```
+
+### 6. Teste a imagem PostgreSQL localmente
+
+```bash
+# No Windows (PowerShell)
+cd backend
+.\test-postgres-image.ps1
+
+# No Linux/Mac
+cd backend
+./test-postgres-image.sh
+```
+
+## 🐘 Imagem Docker PostgreSQL
+
+O projeto inclui uma imagem Docker personalizada do PostgreSQL 15 com:
+
+- **Configuração pré-definida** para o projeto
+- **Tabela `tarefas`** criada automaticamente
+- **Dados de exemplo** inseridos
+- **Health check** configurado
+- **Scripts de inicialização** personalizados
+
+### Imagens Disponíveis no Docker Hub
+
+- `luizrinaldiriato/dockerpostgres:latest`
+- `luizrinaldiriato/dockerpostgres:postgres15`
+- `luizrinaldiriato/dockerpostgres:{commit-sha}`
+
+### Como Usar a Imagem
+
+```bash
+# Executar com configurações padrão
+docker run -d \
+  --name postgres-tarefas \
+  -p 5432:5432 \
+  -e POSTGRES_DB=tarefas_db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  luizrinaldiriato/dockerpostgres:latest
+
+# Executar com Docker Compose
+version: '3.8'
+services:
+  postgres:
+    image: luizrinaldiriato/dockerpostgres:latest
+    environment:
+      POSTGRES_DB: tarefas_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+Para mais detalhes, consulte o arquivo `backend/README-POSTGRES.md`.
 
 ## 📚 Documentação da API
 
@@ -135,11 +212,12 @@ O projeto utiliza GitHub Actions para automatizar o processo de CI/CD:
    - Atualização do package.json
    - Commit das mudanças
 
-3. **Build da Imagem Docker**
+3. **Build das Imagens Docker**
+   - **Aplicação**: Build e push da imagem da API
+   - **PostgreSQL**: Build e push da imagem do banco de dados
    - Login no Docker Hub
-   - Build da imagem
    - Push para o registry
-   - Criação da tag latest
+   - Criação das tags
 
 4. **Deploy no Render**
    - Atualização de variáveis de ambiente
@@ -164,7 +242,7 @@ RENDER_SERVICE_ID=id_do_servico_render
 
 # Banco de Dados
 DB_HOST=host_do_banco
-DB_PORT=3306
+DB_PORT=5432
 DB_USER=usuario_do_banco
 DB_PASSWORD=senha_do_banco
 DB_NAME=nome_do_banco
@@ -183,82 +261,34 @@ NOTIFICATION_EMAIL=email_para_notificacoes@exemplo.com
 ### Imagens Disponíveis
 
 - **Backend**: Node.js 18 Alpine
-- **Banco de Dados**: MySQL 8.0
+- **Banco de Dados**: PostgreSQL 15 (imagem personalizada)
 
 ### Comandos Docker
 
 ```bash
-# Build da imagem
+# Build da imagem da aplicação
 docker build -t tarefas-api ./backend
 
-# Executar container
+# Build da imagem PostgreSQL
+docker build -f backend/Dockerfile.postgres -t postgres-tarefas ./backend
+
+# Executar container da aplicação
 docker run -p 3000:3000 tarefas-api
+
+# Executar container PostgreSQL
+docker run -p 5432:5432 luizrinaldiriato/dockerpostgres:latest
 
 # Executar com Docker Compose
 docker-compose up --build
 
 # Parar containers
 docker-compose down
-
-# Ver logs
-docker-compose logs -f backend
 ```
 
-## 📊 Monitoramento
-
-### BetterStack Logs
-
-O projeto está integrado com BetterStack para logging centralizado:
-
-1. Crie uma conta no BetterStack
-2. Crie um novo stream para logs
-3. Configure o token no arquivo `.env` ou nas secrets do GitHub
-4. Os logs serão enviados automaticamente
-
-### Health Check
-
-```bash
-curl http://localhost:3000/health
-```
-
-Resposta esperada:
-```json
-{
-  "status": "OK",
-  "uptime": 123.456,
-  "timestamp": "2024-01-01T12:00:00.000Z"
-}
-```
-
-## 🧪 Testes
-
-```bash
-cd backend
-npm test
-```
-
-## 📝 Padrões de Commit
-
-Utilizamos o padrão Conventional Commits:
-
-- `feat:` Nova funcionalidade
-- `fix:` Correção de bug
-- `docs:` Documentação
-- `style:` Formatação de código
-- `refactor:` Refatoração
-- `test:` Testes
-- `chore:` Tarefas de manutenção
-
-Exemplo:
-```bash
-git commit -m "feat: adiciona endpoint para buscar tarefa por ID"
-```
-
-## 🔧 Desenvolvimento
-
-### Estrutura do Projeto
+## 📁 Estrutura do Projeto
 
 ```
+cicd/
 ├── backend/
 │   ├── config/
 │   │   ├── database.js
@@ -266,9 +296,15 @@ git commit -m "feat: adiciona endpoint para buscar tarefa por ID"
 │   │   └── swagger.js
 │   ├── routes/
 │   │   └── tarefas.js
-│   ├── server.js
 │   ├── Dockerfile
-│   └── package.json
+│   ├── Dockerfile.postgres
+│   ├── init.sql
+│   ├── server.js
+│   ├── test-postgres-image.sh
+│   ├── test-postgres-image.ps1
+│   └── README-POSTGRES.md
+├── screens/
+├── services/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml
@@ -276,54 +312,63 @@ git commit -m "feat: adiciona endpoint para buscar tarefa por ID"
 └── README.md
 ```
 
-### Scripts Disponíveis
+## 🔧 Troubleshooting
 
-```bash
-# Desenvolvimento
-npm run dev          # Executa em modo desenvolvimento
-npm run start        # Executa em produção
+### Problemas com o Banco de Dados
 
-# Docker
-docker-compose up    # Inicia todos os serviços
-docker-compose down  # Para todos os serviços
-```
+1. **Erro de conexão recusada**:
+   ```bash
+   # Verificar se o container está rodando
+   docker ps
+   
+   # Verificar logs do PostgreSQL
+   docker logs postgres-tarefas
+   ```
 
-## 🚀 Deploy
+2. **Erro de autenticação**:
+   ```bash
+   # Verificar credenciais
+   docker exec -it postgres-tarefas psql -U postgres -d tarefas_db
+   ```
 
-### Render
+3. **Reset completo do banco**:
+   ```bash
+   docker stop postgres-tarefas
+   docker rm postgres-tarefas
+   docker volume rm postgres_data
+   docker run -d --name postgres-tarefas -p 5432:5432 luizrinaldiriato/dockerpostgres:latest
+   ```
 
-1. Conecte seu repositório GitHub ao Render
-2. Configure as variáveis de ambiente
-3. O deploy será automático a cada push na branch main
+### Problemas com o Servidor
 
-### Variáveis de Ambiente no Render
+1. **Porta já em uso**:
+   ```bash
+   # Verificar processos na porta 3000
+   netstat -ano | findstr :3000
+   
+   # Matar processo
+   taskkill /PID <PID> /F
+   ```
 
-- `NODE_ENV`: production
-- `PORT`: 3000
-- `DB_HOST`: Host do banco de dados
-- `DB_PORT`: 3306
-- `DB_USER`: Usuário do banco
-- `DB_PASSWORD`: Senha do banco
-- `DB_NAME`: Nome do banco
-- `BETTERSTACK_SOURCE_TOKEN`: Token do BetterStack
+2. **Dependências não instaladas**:
+   ```bash
+   cd backend
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
-## 📞 Suporte
-
-Para dúvidas ou problemas:
-
-1. Abra uma issue no GitHub
-2. Consulte a documentação Swagger
-3. Verifique os logs no BetterStack
-
-## 📄 Licença
+## 📝 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## 👥 Contribuidores
+## 🤝 Contribuição
 
-- [Seu Nome](https://github.com/seu-usuario)
-- [festmedeiros](https://github.com/festmedeiros)
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
 
----
+## 📞 Suporte
 
-**Desenvolvido com ❤️ para o projeto de CI/CD** 
+Para suporte, envie um email para luiz.riato@outlook.com ou abra uma issue no GitHub. 

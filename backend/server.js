@@ -33,7 +33,6 @@ console.log('🔍 Debug ambiente:', {
 
 // Middlewares de segurança
 app.use(helmet({
-  // Configurações específicas para o Render
   contentSecurityPolicy: isRender ? {
     directives: {
       defaultSrc: ["'self'"],
@@ -44,25 +43,34 @@ app.use(helmet({
   } : undefined,
 }));
 
-
-// Middlewares de logging
+// Middleware de logging
 app.use(morgan('combined'));
 app.use(requestLogger);
 
-// Middlewares básicos
+// Middleware de CORS com origem dinâmica
 app.use(cors({
-  origin: isRender ? [
-    'https://backendapicicd.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:8080',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL
-  ].filter(Boolean) : true,
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'https://backendapicicd.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
+// Libera pré-flight CORS
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -80,8 +88,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
   customSiteTitle: 'API de Gerenciamento de Tarefas - Documentação'
 }));
 
-
-// Endpoint para o JSON do Swagger
+// Endpoint para o JSON do Swagger (opcional)
 app.get('/api-docs/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpecs);
@@ -96,18 +103,6 @@ app.get('/api-docs/swagger.json', (req, res) => {
  *     responses:
  *       200:
  *         description: API funcionando corretamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 version:
- *                   type: string
- *                 timestamp:
- *                   type: string
- *                   format: date-time
  */
 app.get('/', (req, res) => {
   res.json({ 
@@ -129,17 +124,6 @@ app.get('/', (req, res) => {
  *     responses:
  *       200:
  *         description: API saudável
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 uptime:
- *                   type: number
- *                 timestamp:
- *                   type: string
  */
 app.get('/health', (req, res) => {
   res.json({
@@ -190,13 +174,9 @@ app.use((error, req, res, next) => {
 async function startServer() {
   try {
     console.log('🔌 Tentando conectar ao banco de dados...');
-    
-    // Inicializar banco de dados
     await initializeDatabase();
-    
     console.log('✅ Banco de dados conectado com sucesso!');
     
-    // Iniciar servidor
     app.listen(PORT, '0.0.0.0', () => {
       logger.info('Servidor iniciado com sucesso', {
         port: PORT,
@@ -204,26 +184,18 @@ async function startServer() {
         render: isRender,
         timestamp: new Date().toISOString()
       });
-      
+
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📚 Documentação disponível em: http://localhost:${PORT}/api-docs`);
-      console.log(`🔍 Health check em: http://localhost:${PORT}/health`);
-      console.log(`📊 API disponível em: http://localhost:${PORT}`);
-      
-      if (isRender) {
-        console.log(`🔒 Render detectado - SSL/TLS habilitado`);
-      }
     });
   } catch (error) {
     logger.error('Erro ao inicializar servidor', { error: error.message });
     console.error('❌ Erro ao inicializar servidor:', error.message);
-    console.error('🔍 Detalhes do erro:', error);
     process.exit(1);
   }
 }
 
-// Tratamento de sinais para graceful shutdown
+// Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM recebido, encerrando servidor graciosamente');
   await flushLogs();
@@ -236,5 +208,5 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Iniciar servidor
-startServer(); 
+// Inicia o servidor
+startServer();
