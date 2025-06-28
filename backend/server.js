@@ -51,13 +51,21 @@ app.use(requestLogger);
 
 // Middlewares básicos
 app.use(cors({
-  origin: isRender ? [
-    'https://backendapicicd.onrender.com',
-    'https://*.onrender.com',
-    process.env.FRONTEND_URL
-  ].filter(Boolean) : true,
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'https://backendapicicd.onrender.com',
+      process.env.FRONTEND_URL
+    ];
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
