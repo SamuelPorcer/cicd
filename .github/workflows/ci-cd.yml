@@ -187,6 +187,25 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Debug Docker Hub authentication
+      run: |
+        echo "🔍 Debug detalhado da autenticação Docker Hub..."
+        echo "Username configurado: ${{ secrets.DOCKER_USERNAME }}"
+        echo "Password length: ${#DOCKER_PASSWORD}"
+        echo "Password starts with: ${DOCKER_PASSWORD:0:10}..."
+        
+        # Testar se conseguimos fazer login manualmente
+        echo "🧪 Testando login manual..."
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin || echo "❌ Login manual falhou"
+        
+        # Verificar se estamos logados
+        echo "🔐 Verificando status do login..."
+        docker info | grep -i "username" || echo "❌ Não conseguimos verificar o status"
+        
+        # Testar pull de uma imagem pública
+        echo "📥 Testando pull de imagem pública..."
+        docker pull hello-world || echo "❌ Falha no pull de imagem pública"
+
     - name: Build and push Docker image
       if: steps.version_step.outputs.NEW_VERSION != ''
       uses: docker/build-push-action@v5
