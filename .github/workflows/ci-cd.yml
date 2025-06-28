@@ -242,6 +242,10 @@ jobs:
                 "value": "production"
               },
               {
+                "key": "RENDER",
+                "value": "true"
+              },
+              {
                 "key": "DB_HOST",
                 "value": "${{ secrets.DB_HOST }}"
               },

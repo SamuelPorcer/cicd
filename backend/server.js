@@ -16,15 +16,37 @@ const tarefasRoutes = require('./routes/tarefas');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configurações específicas para o Render
+const isRender = process.env.RENDER === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Middlewares de segurança
-app.use(helmet());
+app.use(helmet({
+  // Configurações específicas para o Render
+  contentSecurityPolicy: isRender ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  } : undefined,
+}));
 
 // Middlewares de logging
 app.use(morgan('combined'));
 app.use(requestLogger);
 
 // Middlewares básicos
-app.use(cors());
+app.use(cors({
+  origin: isRender ? [
+    'https://tarefas-api.onrender.com',
+    'https://*.onrender.com',
+    process.env.FRONTEND_URL
+  ].filter(Boolean) : true,
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -58,7 +80,9 @@ app.get('/', (req, res) => {
     message: 'API de Gerenciamento de Tarefas funcionando!',
     version: process.env.npm_package_version || '1.0.0',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    render: isRender,
+    ssl: req.secure || req.headers['x-forwarded-proto'] === 'https'
   });
 });
 
@@ -87,7 +111,9 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     uptime: process.uptime(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    render: isRender
   });
 });
 
@@ -133,17 +159,23 @@ async function startServer() {
     await initializeDatabase();
     
     // Iniciar servidor
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info('Servidor iniciado com sucesso', {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
+        render: isRender,
         timestamp: new Date().toISOString()
       });
       
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
+      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📚 Documentação disponível em: http://localhost:${PORT}/api-docs`);
       console.log(`🔍 Health check em: http://localhost:${PORT}/health`);
       console.log(`📊 API disponível em: http://localhost:${PORT}`);
+      
+      if (isRender) {
+        console.log(`🔒 Render detectado - SSL/TLS habilitado`);
+      }
     });
   } catch (error) {
     logger.error('Erro ao inicializar servidor', { error: error.message });
