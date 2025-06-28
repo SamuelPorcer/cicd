@@ -7,10 +7,11 @@ const dbConfig = {
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'tarefas_db',
-  ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true' 
-    ? { rejectUnauthorized: false } 
+  ssl: process.env.RENDER === 'true' || process.env.DB_SSL === 'true'
+    ? { rejectUnauthorized: false }
     : false
 };
+
 
 const pool = new Pool(dbConfig);
 
