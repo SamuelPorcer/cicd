@@ -1,5 +1,25 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 
+// Detectar ambiente
+const isRender = process.env.RENDER === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Configurar servidores baseado no ambiente
+const servers = [
+  {
+    url: 'http://localhost:3000',
+    description: 'Servidor de Desenvolvimento'
+  }
+];
+
+// Adicionar servidor do Render se estiver em produção
+if (isRender || isProduction) {
+  servers.push({
+    url: 'https://backendapicicd.onrender.com',
+    description: 'Servidor de Produção (Render)'
+  });
+}
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -12,12 +32,7 @@ const options = {
         email: 'dev@example.com'
       }
     },
-    servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Servidor de Desenvolvimento'
-      }
-    ],
+    servers: servers,
     components: {
       schemas: {
         Tarefa: {

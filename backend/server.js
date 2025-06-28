@@ -51,19 +51,17 @@ app.use(requestLogger);
 
 // Middlewares básicos
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'https://backendapicicd.onrender.com',
-      process.env.FRONTEND_URL
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
+  origin: isRender ? [
+    'https://backendapicicd.onrender.com',
+    'https://*.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL
+  ].filter(Boolean) : true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 
@@ -71,7 +69,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Documentação Swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+  swaggerOptions: {
+    url: '/api-docs/swagger.json',
+    validatorUrl: null,
+    supportedSubmitMethods: ['get', 'post', 'put', 'delete'],
+    docExpansion: 'list',
+    filter: true,
+    showRequestHeaders: true
+  },
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'API de Gerenciamento de Tarefas - Documentação'
+}));
+
+// Endpoint para o JSON do Swagger
+app.get('/api-docs/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpecs);
+});
 
 /**
  * @swagger
