@@ -20,6 +20,17 @@ const PORT = process.env.PORT || 3000;
 const isRender = process.env.RENDER === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Debug das variáveis de ambiente
+console.log('🔍 Debug ambiente:', {
+  NODE_ENV: process.env.NODE_ENV,
+  RENDER: process.env.RENDER,
+  DB_HOST: process.env.DB_HOST ? '***' : 'não definido',
+  DB_PORT: process.env.DB_PORT,
+  DB_USER: process.env.DB_USER,
+  DB_NAME: process.env.DB_NAME,
+  BETTERSTACK_SOURCE_TOKEN: process.env.BETTERSTACK_SOURCE_TOKEN ? '***' : 'não definido'
+});
+
 // Middlewares de segurança
 app.use(helmet({
   // Configurações específicas para o Render
@@ -40,7 +51,7 @@ app.use(requestLogger);
 // Middlewares básicos
 app.use(cors({
   origin: isRender ? [
-    'https://tarefas-api.onrender.com',
+    'https://backendapicicd.onrender.com',
     'https://*.onrender.com',
     process.env.FRONTEND_URL
   ].filter(Boolean) : true,
@@ -155,8 +166,12 @@ app.use((error, req, res, next) => {
 // Inicialização do servidor
 async function startServer() {
   try {
+    console.log('🔌 Tentando conectar ao banco de dados...');
+    
     // Inicializar banco de dados
     await initializeDatabase();
+    
+    console.log('✅ Banco de dados conectado com sucesso!');
     
     // Iniciar servidor
     app.listen(PORT, '0.0.0.0', () => {
@@ -180,6 +195,7 @@ async function startServer() {
   } catch (error) {
     logger.error('Erro ao inicializar servidor', { error: error.message });
     console.error('❌ Erro ao inicializar servidor:', error.message);
+    console.error('🔍 Detalhes do erro:', error);
     process.exit(1);
   }
 }
