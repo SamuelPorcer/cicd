@@ -46,12 +46,13 @@ cp env.example .env
 
 Edite o arquivo `.env` com suas configurações:
 
+#### Para Desenvolvimento Local:
 ```env
 # Configurações do Servidor
 PORT=3000
 NODE_ENV=development
 
-# Configurações do Banco de Dados PostgreSQL
+# Configurações do Banco de Dados PostgreSQL (Local)
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -61,6 +62,25 @@ DB_SSL=false
 
 # Configurações do BetterStack
 BETTERSTACK_SOURCE_TOKEN=seu_token_aqui
+```
+
+#### Para Produção (Render):
+```env
+# Configurações do Servidor
+PORT=3000
+NODE_ENV=production
+RENDER=true
+
+# Configurações do Banco de Dados PostgreSQL (Render)
+DB_HOST=dpg-d1gsp1ngi27c73c345og-a.oregon-postgres.render.com
+DB_PORT=5432
+DB_USER=tarefas_db_6kjg_user
+DB_PASSWORD=vElqqRldCgAuj0ZbXP76I6mTZQ5uOpSo
+DB_NAME=tarefas_db_6kjg
+DB_SSL=true
+
+# Configurações do BetterStack
+BETTERSTACK_SOURCE_TOKEN=WP1Eq5fRkv7m44iNWPMUngLJ
 ```
 
 ### 3. Instale as dependências
@@ -76,6 +96,8 @@ npm install
 # Na raiz do projeto
 docker-compose up --build
 ```
+
+**Nota:** O Docker Compose está configurado para usar as mesmas credenciais do banco PostgreSQL do Render, mas rodando localmente.
 
 ### 5. Execute localmente (Alternativo)
 
@@ -167,7 +189,7 @@ Para mais detalhes, consulte o arquivo `backend/README-POSTGRES.md`.
 
 A documentação Swagger está disponível em:
 - **Local**: http://localhost:3000/api-docs
-- **Produção**: https://sua-api-render.onrender.com/api-docs
+- **Produção**: https://cicd-api.onrender.com/api-docs
 
 ### Endpoints Principais
 
@@ -183,16 +205,29 @@ A documentação Swagger está disponível em:
 ### Exemplo de uso
 
 ```bash
-# Listar tarefas
+# Listar tarefas (Local)
 curl http://localhost:3000/tarefas
 
-# Criar tarefa
+# Listar tarefas (Produção)
+curl https://cicd-api.onrender.com/tarefas
+
+# Criar tarefa (Local)
 curl -X POST http://localhost:3000/tarefas \
   -H "Content-Type: application/json" \
   -d '{"descricao": "Nova tarefa", "status": "pendente"}'
 
-# Atualizar tarefa
+# Criar tarefa (Produção)
+curl -X POST https://cicd-api.onrender.com/tarefas \
+  -H "Content-Type: application/json" \
+  -d '{"descricao": "Nova tarefa", "status": "pendente"}'
+
+# Atualizar tarefa (Local)
 curl -X PUT http://localhost:3000/tarefas/1 \
+  -H "Content-Type: application/json" \
+  -d '{"status": "completa"}'
+
+# Atualizar tarefa (Produção)
+curl -X PUT https://cicd-api.onrender.com/tarefas/1 \
   -H "Content-Type: application/json" \
   -d '{"status": "completa"}'
 ```
@@ -333,45 +368,3 @@ cicd/
    # Verificar credenciais
    docker exec -it postgres-tarefas psql -U postgres -d tarefas_db
    ```
-
-3. **Reset completo do banco**:
-   ```bash
-   docker stop postgres-tarefas
-   docker rm postgres-tarefas
-   docker volume rm postgres_data
-   docker run -d --name postgres-tarefas -p 5432:5432 samuelpregnolatto/dockerpostgres:latest
-   ```
-
-### Problemas com o Servidor
-
-1. **Porta já em uso**:
-   ```bash
-   # Verificar processos na porta 3000
-   netstat -ano | findstr :3000
-   
-   # Matar processo
-   taskkill /PID <PID> /F
-   ```
-
-2. **Dependências não instaladas**:
-   ```bash
-   cd backend
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📞 Suporte
-
-Para suporte, envie um email para luiz.riato@outlook.com ou abra uma issue no GitHub. 
