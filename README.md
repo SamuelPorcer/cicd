@@ -2,6 +2,9 @@
 
 API REST completa para gerenciamento de tarefas com pipeline CI/CD automatizado.
 
+**Desenvolvido por:** Samuel Pregnolatto  
+**Repositório:** https://github.com/SamuelPorcer/cicd
+
 ## 🚀 Funcionalidades
 
 - ✅ CRUD completo de tarefas
@@ -30,8 +33,8 @@ API REST completa para gerenciamento de tarefas com pipeline CI/CD automatizado.
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/tarefas-api.git
-cd tarefas-api
+git clone https://github.com/SamuelPorcer/cicd.git
+cd cicd
 ```
 
 ### 2. Configure as variáveis de ambiente
@@ -85,7 +88,7 @@ docker run --name postgres-tarefas \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=password \
   -p 5432:5432 \
-  -d luizrinaldiriato/dockerpostgres:latest
+  -d samuelpregnolatto/dockerpostgres:latest
 
 # Terminal 2 - Backend
 cd backend
@@ -127,9 +130,9 @@ O projeto inclui uma imagem Docker personalizada do PostgreSQL 15 com:
 
 ### Imagens Disponíveis no Docker Hub
 
-- `luizrinaldiriato/dockerpostgres:latest`
-- `luizrinaldiriato/dockerpostgres:postgres15`
-- `luizrinaldiriato/dockerpostgres:{commit-sha}`
+- `samuelpregnolatto/dockerpostgres:latest`
+- `samuelpregnolatto/dockerpostgres:postgres15`
+- `samuelpregnolatto/dockerpostgres:{commit-sha}`
 
 ### Como Usar a Imagem
 
@@ -141,13 +144,13 @@ docker run -d \
   -e POSTGRES_DB=tarefas_db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=password \
-  luizrinaldiriato/dockerpostgres:latest
+  samuelpregnolatto/dockerpostgres:latest
 
 # Executar com Docker Compose
 version: '3.8'
 services:
   postgres:
-    image: luizrinaldiriato/dockerpostgres:latest
+    image: samuelpregnolatto/dockerpostgres:latest
     environment:
       POSTGRES_DB: tarefas_db
       POSTGRES_USER: postgres
@@ -276,7 +279,7 @@ docker build -f backend/Dockerfile.postgres -t postgres-tarefas ./backend
 docker run -p 3000:3000 tarefas-api
 
 # Executar container PostgreSQL
-docker run -p 5432:5432 luizrinaldiriato/dockerpostgres:latest
+docker run -p 5432:5432 samuelpregnolatto/dockerpostgres:latest
 
 # Executar com Docker Compose
 docker-compose up --build
@@ -336,7 +339,7 @@ cicd/
    docker stop postgres-tarefas
    docker rm postgres-tarefas
    docker volume rm postgres_data
-   docker run -d --name postgres-tarefas -p 5432:5432 luizrinaldiriato/dockerpostgres:latest
+   docker run -d --name postgres-tarefas -p 5432:5432 samuelpregnolatto/dockerpostgres:latest
    ```
 
 ### Problemas com o Servidor

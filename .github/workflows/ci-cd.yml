@@ -150,7 +150,7 @@ jobs:
 
         # Configurar git
         git config user.name "GitHub Action"
-        git config user.email "luiz.riato@outlook.com"
+        git config user.email "samuelpregnolatto@gmail.com"
         echo "DEBUG: Configuração do Git definida"
 
         # Commit e tag
@@ -214,9 +214,9 @@ jobs:
         file: ./backend/Dockerfile
         push: true
         tags: |
-          luizrinaldiriato/cicd:latest
-          luizrinaldiriato/cicd:${{ github.ref_name }}
-          luizrinaldiriato/cicd:${{ steps.version_step.outputs.NEW_VERSION }}
+          samuelpregnolatto/cicd:latest
+          samuelpregnolatto/cicd:${{ github.ref_name }}
+          samuelpregnolatto/cicd:${{ steps.version_step.outputs.NEW_VERSION }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -277,7 +277,7 @@ jobs:
           -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
           -H "Content-Type: application/json" \
           -d '{
-            "image": "luizrinaldiriato/cicd:${{ steps.version_step.outputs.NEW_VERSION }}"
+            "image": "samuelpregnolatto/cicd:${{ steps.version_step.outputs.NEW_VERSION }}"
           }'
         
         echo "Comando de deploy para o Render enviado."
@@ -328,9 +328,9 @@ jobs:
         file: ./backend/Dockerfile.postgres
         push: true
         tags: |
-          luizrinaldiriato/dockerpostgres:latest
-          luizrinaldiriato/dockerpostgres:postgres15
-          luizrinaldiriato/dockerpostgres:${{ github.sha }}
+          samuelpregnolatto/dockerpostgres:latest
+          samuelpregnolatto/dockerpostgres:postgres15
+          samuelpregnolatto/dockerpostgres:${{ github.sha }}
         cache-from: type=local,src=/tmp/.buildx-cache-postgres
         cache-to: type=local,dest=/tmp/.buildx-cache-postgres-new,mode=max
 
@@ -342,9 +342,9 @@ jobs:
     - name: Notify PostgreSQL image pushed
       run: |
         echo "✅ Imagem PostgreSQL enviada para Docker Hub:"
-        echo "   - luizrinaldiriato/dockerpostgres:latest"
-        echo "   - luizrinaldiriato/dockerpostgres:postgres15"
-        echo "   - luizrinaldiriato/dockerpostgres:${{ github.sha }}"
+        echo "   - samuelpregnolatto/dockerpostgres:latest"
+        echo "   - samuelpregnolatto/dockerpostgres:postgres15"
+        echo "   - samuelpregnolatto/dockerpostgres:${{ github.sha }}"
 
   # Job de notificação de erro
   notify-error:
