@@ -1,15 +1,15 @@
 version: '3.8'
 
 services:
-  # Banco de dados PostgreSQL
+  # Banco de dados PostgreSQL (Render)
   postgres:
     image: postgres:15
     container_name: tarefas-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: tarefas_db
-      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vElqqRldCgAuj0ZbXP76I6mTZQ5uOpSo
+      POSTGRES_DB: tarefas_db_6kjg
+      POSTGRES_USER: tarefas_db_6kjg_user
     ports:
       - "5432:5432"
     volumes:
@@ -18,7 +18,7 @@ services:
     networks:
       - tarefas-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U tarefas_db_6kjg_user"]
       timeout: 20s
       retries: 10
 
@@ -34,11 +34,11 @@ services:
       - PORT=3000
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=tarefas_db
+      - DB_USER=tarefas_db_6kjg_user
+      - DB_PASSWORD=vElqqRldCgAuj0ZbXP76I6mTZQ5uOpSo
+      - DB_NAME=tarefas_db_6kjg
       - DB_SSL=false
-      - BETTERSTACK_SOURCE_TOKEN=${BETTERSTACK_SOURCE_TOKEN}
+      - BETTERSTACK_SOURCE_TOKEN=${BETTERSTACK_SOURCE_TOKEN:-WP1Eq5fRkv7m44iNWPMUngLJ}
     ports:
       - "3000:3000"
     depends_on:
